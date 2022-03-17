@@ -1,16 +1,10 @@
-from torch import nn
-import torch
-from collections import deque
 import itertools
+import itertools
+
 import numpy as np
-import random
 
-GAMMA = 0.99
-BATCH_SIZE = 32
-
-
-from src.environment import DQNEnvironment
 from src.agent import DQNAgent
+from src.environment import DQNEnvironment
 
 
 def deep_q_learning(config):
@@ -25,43 +19,41 @@ def deep_q_learning(config):
     # uniform random policy to populate the replay memory D
     for _ in range(config.replay_start_size):
         action = agent.action_space.sample()
-        next_observation, reward, done, _ = environment.step(action=action)
-        agent.replay_memory.append(observation, action, reward, next_observation, done)
-        observation = environment.reset() if done else next_observation
+        next_observation, reward, episode_done, _ = environment.step(action=action)
+        agent.replay_memory.append(observation, action, reward, next_observation, episode_done)
+        observation = environment.reset() if episode_done else next_observation
 
-    n_frames = 0
+    n_step = 1
+    for episode in itertools.count():
 
-    for episode in itertools.reset():
-        
+        episode_done = False
         episode_reward = 0.0
+        observation = environment.reset()
 
-    # main train loop
-    observation = environment.reset()
-    for step in itertools.count():
-        action, epsilon = agent.select_action(observation=observation, n_frame=step)
+        while not episode_done:
 
+            # select action every k-th frame and repeat action on skipped frames (frame-skipping technique)
+            action, epsilon = agent.sample_action(observation=observation, n_frame=n_step)
 
-        next_observation, reward, done, _ = environment.step(action)
-        agent.replay_memory.append(observation, action, reward, next_observation, done)
-        observation = next_observation
+            # execute action a_t in emulator; observe reward r_t and image x_(t+1)
+            next_observation, reward, episode_done, _ = environment.step(action)
+            episode_reward += reward
 
-        episode_reward += reward
+            # store memories every k-th frame (frame-skipping technique)
+            agent.replay_memory.append(observation, action, reward, next_observation, episode_done)
+            observation = next_observation
 
-        if done:
-            observation = environment.reset()
-            agent.episode_reward_buffer.append(episode_reward)
-            episode_reward = 0.0
+            # update the action-value function Q every k-th action
+            #if step % config.update_frequency == 0:
+            agent.update_network()
 
-        # update the action-value function Q every k-th action
-        #if step % config.update_frequency == 0:
-        agent.learn()
+            # update target memory every k-th parameter upgrade
+            if n_step % config.target_network_update_frequency == 0:
+                agent.update_target_network()
 
-        # upd target net
-        if step % (config.target_network_update_frequency) == 0:
-            agent.update_target_network()
+            if n_step % 1000 == 0:
+                print(f'Episode: {episode}, Step: {n_step}, Avg. Reward: {np.mean(agent.episode_reward_buffer):.2f}')
 
-        if step % 1000 == 0:
-            print()
-            print('Step', step)
-            print('Avg. Reward', np.mean(agent.episode_reward_buffer))
+            n_step = n_step + 1
 
+        agent.episode_reward_buffer.append(episode_reward)

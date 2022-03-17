@@ -27,23 +27,23 @@ class DQNAgent:
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def select_action(self, observation, n_frame):
+    def sample_action(self, observation, n_frame):
         epsilon = self._compute_epsilon(n_frame=n_frame)
-        action = self._sample_action(observation=observation, epsilon=epsilon)
+        if random.random() < epsilon:
+            action = self.action_space.sample()
+        else:
+            action = self._select_action(observation=observation)
         return action, epsilon
 
     def _compute_epsilon(self, n_frame):
         return np.interp(n_frame, [0, self.config.epsilon_decay], [self.config.epsilon_start, self.config.epsilon_end])
 
-    def _sample_action(self, observation, epsilon):
-        choose_random = random.random() < epsilon
-        if choose_random:
-            action = self.action_space.sample()
-        else:
-            action = self.model.act(observation)
+    def _select_action(self, observation):
+        q_values = self.model(torch.as_tensor(observation, dtype=torch.float32).unsqueeze(0))
+        action = torch.argmax(q_values, dim=1)[0].detach().item()
         return action
 
-    def learn(self):
+    def update_network(self):
 
         # sample a random mini-batch of memories from replay memory D
         states, actions, rewards, next_states, episodes_done = self._sample_memories(size=self.config.mini_batch_size)
