@@ -7,6 +7,8 @@ import numpy as np
 import random
 from collections import deque
 
+import cv2
+
 
 class DQNAgent:
 
@@ -15,7 +17,6 @@ class DQNAgent:
         self.action_space = action_space
         self.config = config
         self.episode_reward_buffer = deque(maxlen=100)
-        self.observation_buffer = deque(maxlen=10)
 
         # initialize replay memory D with capacity N
         self.replay_memory = ReplayMemory(capacity=config.replay_memory_size)
@@ -28,13 +29,13 @@ class DQNAgent:
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def _add_observation(self, observation):
-        if self.observation_buffer:
-            self.observation_buffer.append(observation)
-        else:
-            self.observation_buffer.extend(np.full((self.observation_buffer.maxlen, 4), observation))
+        # initialize sequence s_t and preprocessed sequence phi_t
+        self.observation_buffer = deque(maxlen=10)
+        self.state_buffer = deque(maxlen=10)
 
     def sample_action(self, observation, n_step):
+
+        # store observation to sequence s_t
         self._add_observation(observation=observation)
 
         # sample action a_t using an epsilon-greedy policy
@@ -43,11 +44,32 @@ class DQNAgent:
             action = self.action_space.sample()
         else:
             state = self.observation_buffer[-1]
+            tmp_state = self._compute_state()
             action = self._select_action(state=state)
         return action, epsilon
 
+    def _add_observation(self, observation):
+        if self.observation_buffer:
+            self.observation_buffer.append(observation)
+        else:
+            self.observation_buffer.extend(np.full((self.observation_buffer.maxlen, 4), observation))
+
     def _compute_epsilon(self, n_step):
         return np.interp(n_step, [0, self.config.epsilon_decay], [self.config.epsilon_start, self.config.epsilon_end])
+
+    def _compute_state(self):
+        state = np.zeros(self.observation_space.shape)
+
+        for i in range(1, self.config.agent_history_length + 1):
+
+            image = np.concatenate((self.observations[i[..., np.newaxis], current_frame[..., np.newaxis]), axis=3).max(axis=3)  # remove flickering
+
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image = cv2.resize(image, (84, 84))
+            
+        return state
+
+
 
     def _select_action(self, state):
         q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))

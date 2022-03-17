@@ -1,8 +1,7 @@
 from collections import deque
-import itertools
+import numpy as np
+import gym
 
-a = deque(maxlen=10)
-a.append(5)
-a.append(3)
+env = gym.make('Pong-v0')
+print(env.observation_space)
 
-print([a.get() for _ in range(4)])
