@@ -7,10 +7,10 @@ from src.agent import DQNAgent
 from src.environment import DQNEnvironment
 
 
-def deep_q_learning(config):
+def deep_q_learning(environment, config):
 
     # initialize environment
-    environment = DQNEnvironment('CartPole-v0')
+    environment = DQNEnvironment(environment)
     observation = environment.reset()
 
     # initialize agent

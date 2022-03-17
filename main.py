@@ -15,11 +15,10 @@ EPSILON_DECAY = 10000
 TARGET_UPDATE_FREQ = 1000
 
 
-def experiment():
-
-    parser = argparse.ArgumentParser()
+def experiment(environment):
 
     # see Extended Data Table 1
+    parser = argparse.ArgumentParser()
     parser.add_argument("--mini_batch_size", default=32)
     parser.add_argument("--replay_memory_size", default=50000)  # 1000000
     parser.add_argument("--agent_history_length", default=4)
@@ -36,16 +35,13 @@ def experiment():
     parser.add_argument("--epsilon_decay", default=10000)  # final_epsilon_frame, 1000000
     parser.add_argument("--replay_start_size", default=5000)
     parser.add_argument("--no_op_max", default=30)
-
-    # additional arguments
-    parser.add_argument("--episodes", default=1000)
     config = parser.parse_args()
 
     try:
-        deep_q_learning(config=config)
+        deep_q_learning(environment=environment, config=config)
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
 
 
 if __name__ == '__main__':
-    experiment()
+    experiment(environment='CartPole-v0')
