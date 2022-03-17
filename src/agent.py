@@ -15,6 +15,7 @@ class DQNAgent:
         self.action_space = action_space
         self.config = config
         self.episode_reward_buffer = deque(maxlen=100)
+        self.observation_buffer = deque(maxlen=10)
 
         # initialize replay memory D with capacity N
         self.replay_memory = ReplayMemory(capacity=config.replay_memory_size)
@@ -27,19 +28,29 @@ class DQNAgent:
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def sample_action(self, observation, n_frame):
-        epsilon = self._compute_epsilon(n_frame=n_frame)
+    def _add_observation(self, observation):
+        if self.observation_buffer:
+            self.observation_buffer.append(observation)
+        else:
+            self.observation_buffer.extend(np.full((self.observation_buffer.maxlen, 4), observation))
+
+    def sample_action(self, observation, n_step):
+        self._add_observation(observation=observation)
+
+        # sample action a_t using an epsilon-greedy policy
+        epsilon = self._compute_epsilon(n_step=n_step)
         if random.random() < epsilon:
             action = self.action_space.sample()
         else:
-            action = self._select_action(observation=observation)
+            state = self.observation_buffer[-1]
+            action = self._select_action(state=state)
         return action, epsilon
 
-    def _compute_epsilon(self, n_frame):
-        return np.interp(n_frame, [0, self.config.epsilon_decay], [self.config.epsilon_start, self.config.epsilon_end])
+    def _compute_epsilon(self, n_step):
+        return np.interp(n_step, [0, self.config.epsilon_decay], [self.config.epsilon_start, self.config.epsilon_end])
 
-    def _select_action(self, observation):
-        q_values = self.model(torch.as_tensor(observation, dtype=torch.float32).unsqueeze(0))
+    def _select_action(self, state):
+        q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
         action = torch.argmax(q_values, dim=1)[0].detach().item()
         return action
 
