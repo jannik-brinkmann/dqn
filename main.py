@@ -33,7 +33,7 @@ def experiment():
     parser.add_argument("--min_squared_gradient", default=0.01)
     parser.add_argument("--epsilon_start", default=1)  # initial_epsilon
     parser.add_argument("--epsilon_end", default=0.1)  # final_epsilon
-    parser.add_argument("--epsilon_end_frame", default=10000)  # final_epsilon_frame, 1000000
+    parser.add_argument("--epsilon_decay", default=10000)  # final_epsilon_frame, 1000000
     parser.add_argument("--replay_start_size", default=5000)
     parser.add_argument("--no_op_max", default=30)
 
