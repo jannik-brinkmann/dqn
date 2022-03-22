@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
+
 # Distribution / packaging
 .idea/
 .Python
@@ -50,7 +51,7 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
-.pytest_cache/
+.pytest_cache
 
 # Translations
 *.mo
@@ -128,3 +129,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/img/

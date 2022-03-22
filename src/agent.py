@@ -7,6 +7,7 @@ import numpy as np
 import random
 from collections import deque, namedtuple
 from src.utils import preprocessing
+import itertools
 
 import cv2
 
@@ -20,9 +21,7 @@ class DQNAgent:
         self.action_space = action_space
         self.config = config
 
-        # initialize sequence s_t and preprocessed sequence phi_t
         self.observation_buffer = deque(maxlen=10)
-        self.preprocessed_sequence = deque(np.full((10, 4, 84, 84), 10), maxlen=10)
 
         # initialize replay memory D with capacity N
         self.replay_memory = ReplayMemory(capacity=config.replay_memory_size)
@@ -35,40 +34,48 @@ class DQNAgent:
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def reset(self):
+    def append_observation(self, action, observation, step_reward, episode_done):
+        self.observation_buffer.append(observation)
+
+        if len(self.observation_buffer) > self.config.agent_history_length:
+            index = len(self.observation_buffer) - self.config.agent_history_length
+            state = list(itertools.islice(self.observation_buffer, index - 1, index - 1 + 4))
+            next_state = list(itertools.islice(self.observation_buffer, index, index + 4))
+
+            self.replay_memory.append(state, action, step_reward, next_state, episode_done)
+
+    def clear_observations(self):
         self.observation_buffer.clear()
 
     def observe_transition(self, transition):
         self.observation_buffer.append(preprocessing(transition.observation, transition.next_observation))
 
+        if len(self.observation_buffer) > self.config.agent_history_length:
+
+            index = len(self.observation_buffer) - self.config.agent_history_length
+            state = list(itertools.islice(self.observation_buffer, index - 1, index - 1 + 4))
+            next_state = list(itertools.islice(self.observation_buffer, index, index + 4))
+
+            self.replay_memory.append(state, transition.action, transition.reward, next_state, transition.done)
+
     def replay_memory_is_full(self):
         return self.replay_memory.is_full()
 
-    def store_experience(self, action, reward, done):
-
-        assert len(self.observation_buffer) > self.config.agent_history_length, 'not enough observations'
-
-        state = self.observation_buffer[-self.config.agent_history_length - 1:-1]
-        next_state = self.observation_buffer[-self.config.agent_history_length:]
-
-        self.replay_memory.append(state, action, reward, next_state, done)
-
     def select_action(self, n_steps):
-
-        # set phi_(t+1) = phi(s_(t+1))
-        self.preprocessed_sequence.append(preprocessing(self.observation_buffer[-2], self.observation_buffer[-1]))
-
-        # with probability epsilon select a random action a_t; otherwise select a_t = argmax(Q(phi(s_t)))
+        # with probability epsilon select a random action a_t
         epsilon = self._compute_epsilon(n_step=n_steps)
         if random.random() < epsilon:
             action = self.action_space.sample()
+        # otherwise, select a_t = argmax(Q(phi(s_t)))
         else:
+            index = len(self.observation_buffer) - self.config.agent_history_length
+            state = np.array(list(itertools.islice(self.observation_buffer, index, index + 4)))
             q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
             action = torch.argmax(q_values, dim=1)[0].detach().item()
         return action
 
     def _compute_epsilon(self, n_step):
-        return np.interp(n_step, [0, self.config.epsilon_decay], [self.config.epsilon_start, self.config.epsilon_end])
+        return np.interp(n_step, (0, self.config.epsilon_decay), (self.config.epsilon_start, self.config.epsilon_end))
 
     def update_network(self):
 

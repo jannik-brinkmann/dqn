@@ -24,7 +24,7 @@ def experiment(environment):
     parser.add_argument('--epsilon_start', default=1)  # initial_epsilon
     parser.add_argument('--epsilon_end', default=0.1)  # final_epsilon
     parser.add_argument('--epsilon_decay', default=100000)  # final_epsilon_frame, 1000000
-    parser.add_argument('--replay_start_size', default=500)
+    parser.add_argument('--replay_start_size', default=5000)
     parser.add_argument('--no_op_max', default=30)
     config = parser.parse_args()
 
@@ -35,4 +35,4 @@ def experiment(environment):
 
 
 if __name__ == '__main__':
-    experiment(environment='ALE/Breakout-v5')
+    experiment(environment='BreakoutNoFrameskip-v4')

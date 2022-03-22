@@ -9,71 +9,56 @@ from src.utils import preprocessing
 
 from collections import deque, namedtuple
 
-transition = namedtuple("Transition", field_names=("observation", "action", "next_observation"))
+transition = namedtuple("Transition", field_names=("observation", "action", "reward", "next_observation", "done"))
 
 
 def deep_q_learning(environment, config):
 
     # initialize environment and agent
-    environment = DQNEnvironment(environment=environment)
+    environment = DQNEnvironment(environment=environment, config=config)
     agent = DQNAgent(action_space=environment.action_space, config=config)
-
-    observation = environment.reset()
-
-    # uniform random policy to populate the replay memory D
-    while not agent.replay_memory_is_full():
-        action = agent.action_space.sample()
-        next_observation, step_reward, episode_done, _ = environment.step(action=action)
-        agent.observe_transition(observation=observation, action=action, next_observation=next_observation)
-        agent.store_experience(action, step_reward, episode_done)
-        observation = next_observation
-        if episode_done:
-            observation = environment.reset()
-            agent.reset(observation=observation)
 
     episode_reward_buffer = deque(maxlen=100)
 
     n_steps = 1
     for episode in itertools.count():
 
-        environment, agent, n_steps, episode_reward = deep_q_learning_episode(environment, agent, n_steps, config, episode, episode_reward_buffer)
+        environment, agent, n_steps, episode_reward = deep_q_learning_episode(
+            environment=environment,
+            agent=agent,
+            n_steps=n_steps,
+            config=config)
 
         episode_reward_buffer.append(episode_reward)
 
+        print(f'Episode: {episode}, Step: {n_steps}, Reward: {episode_reward}, Avg. Reward: {np.mean(episode_reward_buffer):.2f}')
 
-def deep_q_learning_episode(environment, agent, n_steps, config, episode, episode_reward_buffer):
+
+def deep_q_learning_episode(environment, agent, n_steps, config):
 
     # initialize episode parameters
     episode_done = False
     episode_reward = 0.0
     n_episode_steps = 1
 
-    # initial observation
+    # initialize environment and agent
     observation = environment.reset()
-    agent.reset(observation=observation)
+    agent.clear_observations()
 
     while not episode_done:
 
-        # select action every k-th step (frame-skipping technique)
-        if n_episode_steps % config.action_repeat == 0:
-            if not agent.replay_memory_is_full():
-                action = agent.action_space.sample()  # uniform random policy to populate the replay memory D
-            else:
-                action = agent.select_action(n_steps=n_steps)  # epsilon-greedy strategy
-                n_steps = n_steps + 1
-
-            # execute action a_t in emulator
-            next_observation, step_reward, episode_done, _ = environment.step(action)
-
-            # observe transition x_t, a_t, x_(t+1)
-            agent.observe_transition(transition(observation, action, next_observation))
-
-            # store transition in replay memory D
-            agent.store_experience(action, step_reward, episode_done)
-
-        # repeat action on skipped frames (frame-skipping technique)
+        # select action using a uniform random policy to populate the replay memory D; otherwise epsilon-greedy
+        if not agent.replay_memory_is_full():
+            action = agent.action_space.sample()
         else:
-            observation, step_reward, _, _ = environment.step(action)
+            action = agent.select_action(n_steps=n_steps)
+            n_steps = n_steps + 1
+
+        # execute action a_t in emulator
+        observation, step_reward, episode_done, _ = environment.step(action)
+
+        # observe image x_(t+1); store transition in replay memory D
+        agent.append_observation(action, observation, step_reward, episode_done)
 
         # update the action-value function Q every k-th action
         if n_steps % (config.action_repeat * config.update_frequency) == 0:
@@ -83,10 +68,8 @@ def deep_q_learning_episode(environment, agent, n_steps, config, episode, episod
         if n_steps % (config.action_repeat * config.update_frequency * config.target_network_update_frequency) == 0:
             agent.update_target_network()
 
-        if n_steps % 1000 == 0:
-            print(f'Episode: {episode}, Step: {n_steps}, Avg. Reward: {np.mean(episode_reward_buffer):.2f}')
-
         episode_reward += step_reward
+        n_episode_steps += 1
 
     return environment, agent, n_steps, episode_reward
 

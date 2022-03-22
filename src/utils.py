@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 
+from datetime import datetime
+import random
+
 
 def b_preprocessing(sequence, config):
 
@@ -27,5 +30,7 @@ def preprocessing(previous_frame, current_frame):
 
     # rescale image to 84 x 84
     image = cv2.resize(image, (84, 84), interpolation=cv2.INTER_LINEAR)
+
+    cv2.imwrite(r'C:\Users\Jannik\Desktop\deep-q-network\img\run_img_' + str(random.randint(1, 10000)) + ".jpeg", image)
 
     return image
