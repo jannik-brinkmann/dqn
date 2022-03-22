@@ -21,7 +21,7 @@ class DQNAgent:
         self.config = config
 
         # initialize sequence s_t and preprocessed sequence phi_t
-        self.screen_buffer = deque(maxlen=10)
+        self.observation_buffer = deque(maxlen=10)
         self.preprocessed_sequence = deque(np.full((10, 4, 84, 84), 10), maxlen=10)
 
         # initialize replay memory D with capacity N
@@ -35,28 +35,28 @@ class DQNAgent:
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def observe_screen(self, observation):
-        self.screen_buffer.append(observation)
+    def reset(self):
+        self.observation_buffer.clear()
+
+    def observe_transition(self, transition):
+        self.observation_buffer.append(preprocessing(transition.observation, transition.next_observation))
 
     def replay_memory_is_full(self):
         return self.replay_memory.is_full()
 
-    def store_last_experience(self, action, reward, done):
-        if len(self.preprocessed_sequence) >= 2:
-            self.replay_memory.append(self.preprocessed_sequence[-2], action, reward, self.preprocessed_sequence[-1], done)
+    def store_experience(self, action, reward, done):
 
-    def reset(self, *args, **kwargs):
-        self.screen_buffer.clear()
-        self.preprocessed_sequence.clear()
+        assert len(self.observation_buffer) > self.config.agent_history_length, 'not enough observations'
 
-        observation = kwargs.get("observation", None)
-        if observation:
-            self.observe_screen(observation=observation)
+        state = self.observation_buffer[-self.config.agent_history_length - 1:-1]
+        next_state = self.observation_buffer[-self.config.agent_history_length:]
+
+        self.replay_memory.append(state, action, reward, next_state, done)
 
     def select_action(self, n_steps):
 
         # set phi_(t+1) = phi(s_(t+1))
-        self.preprocessed_sequence.append(preprocessing(self.screen_buffer[-2], self.screen_buffer[-1]))
+        self.preprocessed_sequence.append(preprocessing(self.observation_buffer[-2], self.observation_buffer[-1]))
 
         # with probability epsilon select a random action a_t; otherwise select a_t = argmax(Q(phi(s_t)))
         epsilon = self._compute_epsilon(n_step=n_steps)
@@ -67,22 +67,8 @@ class DQNAgent:
             action = torch.argmax(q_values, dim=1)[0].detach().item()
         return action
 
-    def _get_current_state(self):
-        if len(self.preprocessed_sequence) > 5:
-
-            return np.array(self.preprocessed_sequence[-4:])
-
-        else:
-
-            return self.action_space.sample()
-
     def _compute_epsilon(self, n_step):
         return np.interp(n_step, [0, self.config.epsilon_decay], [self.config.epsilon_start, self.config.epsilon_end])
-
-    def _select_action(self, state):
-        q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
-        action = torch.argmax(q_values, dim=1)[0].detach().item()
-        return action
 
     def update_network(self):
 

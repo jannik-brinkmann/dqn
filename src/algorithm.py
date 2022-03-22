@@ -7,7 +7,9 @@ from src.agent import DQNAgent
 from src.environment import DQNEnvironment
 from src.utils import preprocessing
 
-from collections import deque
+from collections import deque, namedtuple
+
+transition = namedtuple("Transition", field_names=("observation", "action", "next_observation"))
 
 
 def deep_q_learning(environment, config):
@@ -16,16 +18,14 @@ def deep_q_learning(environment, config):
     environment = DQNEnvironment(environment=environment)
     agent = DQNAgent(action_space=environment.action_space, config=config)
 
-    # initial observation
     observation = environment.reset()
-    agent.add_observation(observation=observation)
 
     # uniform random policy to populate the replay memory D
     while not agent.replay_memory_is_full():
         action = agent.action_space.sample()
         next_observation, step_reward, episode_done, _ = environment.step(action=action)
-        agent.add_observation(observation=observation, action=action, next_observation=next_observation)
-        agent.store_last_experience(action, step_reward, episode_done)
+        agent.observe_transition(observation=observation, action=action, next_observation=next_observation)
+        agent.store_experience(action, step_reward, episode_done)
         observation = next_observation
         if episode_done:
             observation = environment.reset()
@@ -54,20 +54,26 @@ def deep_q_learning_episode(environment, agent, n_steps, config, episode, episod
 
     while not episode_done:
 
-        # select action every k-th step and repeat action on skipped frames (frame-skipping technique)
+        # select action every k-th step (frame-skipping technique)
         if n_episode_steps % config.action_repeat == 0:
-            action = agent.select_action(n_steps=n_steps)
+            if not agent.replay_memory_is_full():
+                action = agent.action_space.sample()  # uniform random policy to populate the replay memory D
+            else:
+                action = agent.select_action(n_steps=n_steps)  # epsilon-greedy strategy
+                n_steps = n_steps + 1
 
-        # execute action a_t in emulator
-        next_observation, step_reward, episode_done, _ = environment.step(action)
+            # execute action a_t in emulator
+            next_observation, step_reward, episode_done, _ = environment.step(action)
 
-        # observe image x_(t+1)
-        agent.observe_screen(observation=observation)
+            # observe transition x_t, a_t, x_(t+1)
+            agent.observe_transition(transition(observation, action, next_observation))
 
-        # store transition in replay memory D every k-th step (frame-skipping technique)
-        if n_episode_steps % config.action_repeat == 0:
-            agent.store_last_experience(action, step_reward, episode_done)
+            # store transition in replay memory D
+            agent.store_experience(action, step_reward, episode_done)
 
+        # repeat action on skipped frames (frame-skipping technique)
+        else:
+            observation, step_reward, _, _ = environment.step(action)
 
         # update the action-value function Q every k-th action
         if n_steps % (config.action_repeat * config.update_frequency) == 0:
@@ -81,7 +87,6 @@ def deep_q_learning_episode(environment, agent, n_steps, config, episode, episod
             print(f'Episode: {episode}, Step: {n_steps}, Avg. Reward: {np.mean(episode_reward_buffer):.2f}')
 
         episode_reward += step_reward
-        n_steps = n_steps + 1
 
     return environment, agent, n_steps, episode_reward
 
