@@ -1,13 +1,16 @@
 from src.replay_memory import ReplayMemory
-from src.model import DQNModel
+from src.model import DQNModel, DQNModelCartPole
 
 import torch
 import torch.nn as nn
 import numpy as np
 import random
-from collections import deque
+from collections import deque, namedtuple
+from src.utils import preprocessing
 
 import cv2
+
+sequence_element = namedtuple("SequenceElement", field_names=("observation", "action", "next_observation"))
 
 
 class DQNAgent:
@@ -16,7 +19,10 @@ class DQNAgent:
 
         self.action_space = action_space
         self.config = config
-        self.episode_reward_buffer = deque(maxlen=100)
+
+        # initialize sequence s_t and preprocessed sequence phi_t
+        self.screen_buffer = deque(maxlen=10)
+        self.preprocessed_sequence = deque(np.full((10, 4, 84, 84), 10), maxlen=10)
 
         # initialize replay memory D with capacity N
         self.replay_memory = ReplayMemory(capacity=config.replay_memory_size)
@@ -29,47 +35,49 @@ class DQNAgent:
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
-        # initialize sequence s_t and preprocessed sequence phi_t
-        self.observation_buffer = deque(maxlen=10)
-        self.state_buffer = deque(maxlen=10)
+    def observe_screen(self, observation):
+        self.screen_buffer.append(observation)
 
-    def sample_action(self, observation, n_step):
+    def replay_memory_is_full(self):
+        return self.replay_memory.is_full()
 
-        # store observation to sequence s_t
-        self._add_observation(observation=observation)
+    def store_last_experience(self, action, reward, done):
+        if len(self.preprocessed_sequence) >= 2:
+            self.replay_memory.append(self.preprocessed_sequence[-2], action, reward, self.preprocessed_sequence[-1], done)
 
-        # sample action a_t using an epsilon-greedy policy
-        epsilon = self._compute_epsilon(n_step=n_step)
+    def reset(self, *args, **kwargs):
+        self.screen_buffer.clear()
+        self.preprocessed_sequence.clear()
+
+        observation = kwargs.get("observation", None)
+        if observation:
+            self.observe_screen(observation=observation)
+
+    def select_action(self, n_steps):
+
+        # set phi_(t+1) = phi(s_(t+1))
+        self.preprocessed_sequence.append(preprocessing(self.screen_buffer[-2], self.screen_buffer[-1]))
+
+        # with probability epsilon select a random action a_t; otherwise select a_t = argmax(Q(phi(s_t)))
+        epsilon = self._compute_epsilon(n_step=n_steps)
         if random.random() < epsilon:
             action = self.action_space.sample()
         else:
-            state = self.observation_buffer[-1]
-            tmp_state = self._compute_state()
-            action = self._select_action(state=state)
-        return action, epsilon
+            q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
+            action = torch.argmax(q_values, dim=1)[0].detach().item()
+        return action
 
-    def _add_observation(self, observation):
-        if self.observation_buffer:
-            self.observation_buffer.append(observation)
+    def _get_current_state(self):
+        if len(self.preprocessed_sequence) > 5:
+
+            return np.array(self.preprocessed_sequence[-4:])
+
         else:
-            self.observation_buffer.extend(np.full((self.observation_buffer.maxlen, 4), observation))
+
+            return self.action_space.sample()
 
     def _compute_epsilon(self, n_step):
         return np.interp(n_step, [0, self.config.epsilon_decay], [self.config.epsilon_start, self.config.epsilon_end])
-
-    def _compute_state(self):
-        state = np.zeros(self.observation_space.shape)
-
-        for i in range(1, self.config.agent_history_length + 1):
-
-            image = np.concatenate((self.observations[i[..., np.newaxis], current_frame[..., np.newaxis]), axis=3).max(axis=3)  # remove flickering
-
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            image = cv2.resize(image, (84, 84))
-            
-        return state
-
-
 
     def _select_action(self, state):
         q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
@@ -88,9 +96,7 @@ class DQNAgent:
 
         # compute loss
         q_values = self.model(states)
-
         action_q_values = torch.gather(input=q_values, dim=1, index=actions)
-
         loss = nn.functional.smooth_l1_loss(action_q_values, targets)
 
         # grad des

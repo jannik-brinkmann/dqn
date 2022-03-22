@@ -1,5 +1,7 @@
 import gym
 
+import numpy as np
+
 
 class DQNEnvironment(gym.Wrapper):
 
@@ -15,5 +17,5 @@ class DQNEnvironment(gym.Wrapper):
 
     def step(self, action):
         observation, reward, done, info = self.environment.step(action)
-        reward = max(min(reward, 1), -1)  # clip reward
+        reward = np.clip(reward, -1, 1)
         return observation, reward, done, info
