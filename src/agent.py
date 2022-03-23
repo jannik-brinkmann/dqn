@@ -1,17 +1,12 @@
-from src.replay_memory import ReplayMemory
-from src.model import DQNModel, DQNModelCartPole
+from src.memory import ReplayMemory
+from src.model import DQNModel
 
 import torch
 import torch.nn as nn
 import numpy as np
 import random
 from collections import deque, namedtuple
-from src.utils import preprocessing
 import itertools
-
-import cv2
-
-sequence_element = namedtuple("SequenceElement", field_names=("observation", "action", "next_observation"))
 
 
 class DQNAgent:
@@ -30,37 +25,24 @@ class DQNAgent:
         self.model = DQNModel(n_actions=action_space.n)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
 
-        # initialize separate network for generating targets y_j as a clone of the action-value function Q
+        # initialize separate network for generating targets as a clone of the action-value function Q
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
     def append_observation(self, action, observation, step_reward, episode_done):
         self.observation_buffer.append(observation)
 
+        # append experience to replay memory if sufficient observations have been stored
         if len(self.observation_buffer) > self.config.agent_history_length:
             index = len(self.observation_buffer) - self.config.agent_history_length
             state = list(itertools.islice(self.observation_buffer, index - 1, index - 1 + 4))
             next_state = list(itertools.islice(self.observation_buffer, index, index + 4))
 
-            step_reward = np.clip(step_reward, -1, 1)
+            step_reward = np.clip(step_reward, -1, 1)  # clip reward
             self.replay_memory.append(state, action, step_reward, next_state, episode_done)
 
     def clear_observations(self):
         self.observation_buffer.clear()
-
-    def observe_transition(self, transition):
-        self.observation_buffer.append(preprocessing(transition.observation, transition.next_observation))
-
-        if len(self.observation_buffer) > self.config.agent_history_length:
-
-            index = len(self.observation_buffer) - self.config.agent_history_length
-            state = list(itertools.islice(self.observation_buffer, index - 1, index - 1 + 4))
-            next_state = list(itertools.islice(self.observation_buffer, index, index + 4))
-
-            self.replay_memory.append(state, transition.action, transition.reward, next_state, transition.done)
-
-    def replay_memory_is_full(self):
-        return self.replay_memory.is_full()
 
     def select_action(self, n_steps):
         # with probability epsilon select a random action a_t
@@ -114,3 +96,6 @@ class DQNAgent:
 
     def update_target_network(self):
         self.target_model.load_state_dict(self.model.state_dict())
+
+    def replay_memory_is_full(self):
+        return self.replay_memory.is_full()
