@@ -61,11 +61,11 @@ def deep_q_learning_episode(environment, agent, n_steps, config):
         agent.append_observation(action, observation, step_reward, episode_done)
 
         # update the action-value function Q every k-th action
-        if n_steps % (config.action_repeat * config.update_frequency) == 0:
+        if n_steps % config.update_frequency == 0:
             agent.update_network()
 
         # update target memory every k-th parameter upgrade
-        if n_steps % (config.action_repeat * config.update_frequency * config.target_network_update_frequency) == 0:
+        if n_steps % (config.update_frequency * config.target_network_update_frequency) == 0:
             agent.update_target_network()
 
         episode_reward += step_reward

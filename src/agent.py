@@ -42,6 +42,7 @@ class DQNAgent:
             state = list(itertools.islice(self.observation_buffer, index - 1, index - 1 + 4))
             next_state = list(itertools.islice(self.observation_buffer, index, index + 4))
 
+            step_reward = np.clip(step_reward, -1, 1)
             self.replay_memory.append(state, action, step_reward, next_state, episode_done)
 
     def clear_observations(self):
@@ -64,7 +65,7 @@ class DQNAgent:
     def select_action(self, n_steps):
         # with probability epsilon select a random action a_t
         epsilon = self._compute_epsilon(n_step=n_steps)
-        if random.random() < epsilon:
+        if random.random() < epsilon or len(self.observation_buffer) < self.config.agent_history_length:
             action = self.action_space.sample()
         # otherwise, select a_t = argmax(Q(phi(s_t)))
         else:

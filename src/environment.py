@@ -35,5 +35,5 @@ class DQNEnvironment(gym.Wrapper):
             step_info = info
 
         step_observation = preprocessing(step_observation[1], step_observation[-1])
-        step_reward = np.clip(step_reward, -1, 1)  # clip reward
+        # step_reward = np.clip(step_reward, -1, 1)  # clip reward
         return step_observation, step_reward, step_done, step_info
