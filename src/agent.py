@@ -5,29 +5,31 @@ import torch
 import torch.nn as nn
 import numpy as np
 import random
-from collections import deque, namedtuple
+from collections import deque
 import itertools
+import os
 
 
 class DQNAgent:
 
     def __init__(self, action_space, config):
 
-        self.action_space = action_space
-        self.config = config
-
+        # initialize observation buffer to store previous k observations
         self.observation_buffer = deque(maxlen=10)
 
         # initialize replay memory D with capacity N
-        self.replay_memory = ReplayMemory(capacity=config.replay_memory_size)
+        self.memory = ReplayMemory(capacity=config.replay_memory_size)
 
         # initialize action-value function Q with random weights
         self.model = DQNModel(n_actions=action_space.n)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
 
-        # initialize separate network for generating targets as a clone of the action-value function Q
+        # initialize separate network for generating targets y_j as a clone of the action-value function Q
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
+
+        self.action_space = action_space
+        self.config = config
 
     def append_observation(self, action, observation, step_reward, episode_done):
         self.observation_buffer.append(observation)
@@ -39,7 +41,7 @@ class DQNAgent:
             next_state = list(itertools.islice(self.observation_buffer, index, index + 4))
 
             step_reward = np.clip(step_reward, -1, 1)  # clip reward
-            self.replay_memory.append(state, action, step_reward, next_state, episode_done)
+            self.memory.append(state, action, step_reward, next_state, episode_done)
 
     def clear_observations(self):
         self.observation_buffer.clear()
@@ -49,6 +51,7 @@ class DQNAgent:
         epsilon = self._compute_epsilon(n_step=n_steps)
         if random.random() < epsilon or len(self.observation_buffer) < self.config.agent_history_length:
             action = self.action_space.sample()
+
         # otherwise, select a_t = argmax(Q(phi(s_t)))
         else:
             index = len(self.observation_buffer) - self.config.agent_history_length
@@ -61,21 +64,18 @@ class DQNAgent:
         return np.interp(n_step, (0, self.config.epsilon_decay), (self.config.epsilon_start, self.config.epsilon_end))
 
     def update_network(self):
-
         # sample a random mini-batch of memories from replay memory D
         states, actions, rewards, next_states, episodes_done = self._sample_memories(size=self.config.mini_batch_size)
 
-        # compute targets
+        # compute targets y_j = r_j if episodes terminates at step j+1, otherwise y_j = r_j + gamma * max(Q_(j+1))
         target_q_values = self.target_model(next_states)
-        max_target_q_values = target_q_values.max(dim=1, keepdim=True)[0]
-        targets = rewards + self.config.gamma * (1 - episodes_done) * max_target_q_values
+        targets = rewards + self.config.gamma * (1 - episodes_done) * target_q_values.max(dim=1, keepdim=True)[0]  # TODO: Replace with amax
 
-        # compute loss
-        q_values = self.model(states)
-        action_q_values = torch.gather(input=q_values, dim=1, index=actions)
-        loss = nn.functional.smooth_l1_loss(action_q_values, targets)
+        # compute loss (y_j - Q_j)^2
+        q_values = torch.gather(input=self.model(states), dim=1, index=actions)
+        loss = nn.functional.smooth_l1_loss(q_values, targets)  # TODO: Replace with Huber Loss
 
-        # grad des
+        # gradient descent step on computed loss
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -83,7 +83,7 @@ class DQNAgent:
     def _sample_memories(self, size):
 
         # sample a random mini-batch of memories from replay memory D
-        memories = self.replay_memory.sample(size=size)
+        memories = self.memory.sample(size=size)
 
         # unpack memories
         states = torch.as_tensor(np.asarray([t.state for t in memories]), dtype=torch.float32)
@@ -97,5 +97,12 @@ class DQNAgent:
     def update_target_network(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def replay_memory_is_full(self):
-        return self.replay_memory.is_full()
+    def save_model_weights(self, filename):
+        os.makedirs(os.path.join(os.path.dirname(__file__), os.pardir, 'weights'), exist_ok=True)
+        torch.save(self.model.state_dict(), os.path.join(os.path.dirname(__file__), os.pardir, 'weights', filename))
+
+    def load_model_weights(self, filename):
+        try:
+            self.model.load_state_dict(torch.load(os.path.join(os.path.dirname(__file__), os.pardir, 'weights', filename)))
+        except:
+            print("Model cannot be saved.")
