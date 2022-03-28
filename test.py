@@ -1,9 +1,16 @@
 import logging
 import gym
 import os
+import cv2
 
-env = os.path.join(os.path.dirname(__file__), 'weights', 'checkpoint.pth.tar')
+from collections import deque
 
-print(env)
+a = deque([1])
+
+print(a[0])
+print(a[-1])
+
+
+
 
 

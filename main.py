@@ -3,6 +3,7 @@ import logging
 import os
 
 from src.deep_q_learning import deep_q_learning
+from torch.utils.tensorboard import SummaryWriter
 
 if __name__ == '__main__':
 
@@ -11,7 +12,7 @@ if __name__ == '__main__':
     parser.add_argument('--mini_batch_size', default=32)
     parser.add_argument('--replay_memory_size', default=50000)  # 1000000
     parser.add_argument('--agent_history_length', default=4)
-    parser.add_argument('--target_network_update_frequency', default=10000)
+    parser.add_argument('--target_update_frequency', default=10000)  # target_network_update_frequency
     parser.add_argument('--gamma', default=0.99)  # discount factor
     parser.add_argument('--action_repeat', default=4)
     parser.add_argument('--update_frequency', default=4)
@@ -23,21 +24,13 @@ if __name__ == '__main__':
     parser.add_argument('--epsilon_end', default=0.1)  # final_epsilon
     parser.add_argument('--epsilon_decay', default=1000000)  # final_epsilon_frame
     parser.add_argument('--replay_start_size', default=25000)
-    parser.add_argument('--no_op_max', default=30)
+    parser.add_argument('--max_n_wait_actions', default=30)  # no_op_max
 
     # additional arguments
+    parser.add_argument('--mode', default='inference')
     parser.add_argument('--seed', default=42)
-    parser.add_argument('--weight_save_frequency', default=100)
+    parser.add_argument('--weight_save_frequency', default=1000)
     args = parser.parse_args()
-
-    # setup directory to store weights
-    os.makedirs(os.path.join(os.path.dirname(__file__), os.pardir, 'weights'), exist_ok=True)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - Episode %(episode)s Reward%(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
 
     try:
         # NoFrameskip - ensures no frames are skipped by the emulator

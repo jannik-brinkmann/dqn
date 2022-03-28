@@ -22,6 +22,14 @@ class DQNAgent:
 
         # initialize action-value function Q with random weights
         self.model = DQNModel(n_actions=action_space.n)
+        if not config.mode == 'training':
+            try:
+                self.model.load_state_dict(
+                    torch.load(os.path.join(os.path.dirname(__file__), os.pardir, 'weights', 'checkpoint.pth.tar')))
+                print("weights loaded")
+            except:
+                print("Model cannot be saved.")
+
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
 
         # initialize separate network for generating targets y_j as a clone of the action-value function Q
@@ -49,7 +57,7 @@ class DQNAgent:
     def select_action(self, n_steps):
         # with probability epsilon select a random action a_t
         epsilon = self._compute_epsilon(n_step=n_steps)
-        if random.random() < epsilon or len(self.observation_buffer) < self.config.agent_history_length:
+        if (random.random() < epsilon and self.config.mode == 'training') or len(self.observation_buffer) < self.config.agent_history_length:
             action = self.action_space.sample()
 
         # otherwise, select a_t = argmax(Q(phi(s_t)))
@@ -58,6 +66,7 @@ class DQNAgent:
             state = np.array(list(itertools.islice(self.observation_buffer, index, index + 4)))
             q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
             action = torch.argmax(q_values, dim=1)[0].detach().item()
+            print(action)
         return action
 
     def _compute_epsilon(self, n_step):
@@ -79,6 +88,8 @@ class DQNAgent:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+        return loss
 
     def _sample_memories(self, size):
 
