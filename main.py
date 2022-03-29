@@ -4,8 +4,12 @@ import os
 
 from src.algorithm import deep_q_learning
 from torch.utils.tensorboard import SummaryWriter
+import warnings
+
 
 if __name__ == '__main__':
+
+    warnings.filterwarnings("ignore")
 
     # see Extended Data Table 1
     parser = argparse.ArgumentParser()
@@ -22,12 +26,12 @@ if __name__ == '__main__':
     parser.add_argument('--min_squared_gradient', default=0.01)
     parser.add_argument('--epsilon_start', default=1)  # initial_epsilon
     parser.add_argument('--epsilon_end', default=0.1)  # final_epsilon
-    parser.add_argument('--epsilon_decay', default=1000000)  # final_epsilon_frame
-    parser.add_argument('--replay_start_size', default=25000)
+    parser.add_argument('--epsilon_decay', default=100000)  # final_epsilon_frame
+    parser.add_argument('--replay_start_size', default=25000)  # 50000
     parser.add_argument('--max_n_wait_actions', default=30)  # no_op_max
 
     # additional arguments
-    parser.add_argument('--mode', default='inference')
+    parser.add_argument('--mode', default='training')
     parser.add_argument('--seed', default=42)
     parser.add_argument('--weight_save_frequency', default=1000)
     args = parser.parse_args()
