@@ -13,20 +13,20 @@ class DQNEnvironment(gym.Wrapper):
         self.config = config
 
         # set environment parameters
-        self.lives = self.env.unwrapped.ale.lives()
+        self.lives = 0
         self.start_new_game = True
 
     def reset(self, seed):
         """
         starts an episode after loss-of-life or loss-of-game
         """
-        # call Gym environment reset function only when a new game should be started
+        # (loss-of-game) call Gym environment reset function
         if self.start_new_game:
             self.env.reset(seed=seed)
             self.lives = self.env.unwrapped.ale.lives()
             self.start_new_game = False
 
-        # otherwise, advance from terminal state using no-op action
+        # (loss-of-life) otherwise, advance using 'NOOP' action
         else:
             self.env.step(self.env.unwrapped.get_action_meanings().index('NOOP'))
 
@@ -66,7 +66,7 @@ class DQNEnvironment(gym.Wrapper):
                 self.lives = self.env.unwrapped.ale.lives()
                 step_done = True
 
-            # set indication that the game is over, i.e. no lives left
+            # set indication that the game is over, i.e. no lives are left
             if self.env.unwrapped.ale.lives() == 0:
                 self.start_new_game = True
 

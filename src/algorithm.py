@@ -1,24 +1,23 @@
-import argparse
 import itertools
-import os
-from collections import deque
-import logging
 
-import numpy as np
+import gym
+from torch.utils.tensorboard import SummaryWriter
 
 from src.agent import DQNAgent
 from src.environment import DQNEnvironment
 
-from torch.utils.tensorboard import SummaryWriter
-import gym
-
 
 def deep_q_learning(environment, config):
+    """
+    deep Q-learning with experience replay
+    """
+    writer = SummaryWriter()  # output to be consumed by TensorBoard
 
-    writer = SummaryWriter('logs')
-
+    # in training mode, hide display to increase speed of simulation
     if config.mode == 'training':
         environment = DQNEnvironment(environment=gym.make(environment), config=config)
+
+    # in inference mode, show display to evaluate actions on the board
     else:
         environment = DQNEnvironment(environment=gym.make(environment, render_mode='human'), config=config)
 
@@ -37,7 +36,7 @@ def deep_q_learning(environment, config):
 
         while not episode_done:
 
-            # select action using a uniform random policy to populate the replay memory D
+            # in training mode until replay memory D is populated, select actions using a uniform random policy
             if config.mode == 'training' and not agent.memory.is_full():
                 action = agent.action_space.sample()
 
@@ -64,8 +63,6 @@ def deep_q_learning(environment, config):
             episode_reward += step_reward
 
         writer.add_scalar('Episode Reward', episode_reward, episode)
-
-        print(f'Episode: {episode}, Step: {n_steps}, Reward: {episode_reward}')
 
         # store network weights every k-th episode
         if config.mode == 'training' and episode % config.weight_save_frequency == 0:

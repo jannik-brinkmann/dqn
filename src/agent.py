@@ -55,10 +55,21 @@ class DQNAgent:
         self.observation_buffer.clear()
 
     def select_action(self, n_steps):
-        # with probability epsilon select a random action a_t
+        # in training mode, with probability epsilon select a random action a_t
         epsilon = self._compute_epsilon(n_step=n_steps)
-        if (random.random() < epsilon and self.config.mode == 'training') or len(self.observation_buffer) < self.config.agent_history_length:
+        if self.config.mode == 'training' and random.random() < epsilon:
             action = self.action_space.sample()
+
+        # in case the agent does not have enough observations to select an action ...
+        elif len(self.observation_buffer) < self.config.agent_history_length:
+
+            # ... in training mode, select a random action a_t
+            if self.config.mode == 'training':
+                action = self.action_space.sample()
+
+            # ... in inference mode, select 'NOOP' action
+            else:
+                action = 0
 
         # otherwise, select a_t = argmax(Q(phi(s_t)))
         else:
@@ -66,7 +77,6 @@ class DQNAgent:
             state = np.array(list(itertools.islice(self.observation_buffer, index, index + 4)))
             q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
             action = torch.argmax(q_values, dim=1)[0].detach().item()
-            print(action)
         return action
 
     def _compute_epsilon(self, n_step):

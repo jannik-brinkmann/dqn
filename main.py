@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 
-from src.deep_q_learning import deep_q_learning
+from src.algorithm import deep_q_learning
 from torch.utils.tensorboard import SummaryWriter
 
 if __name__ == '__main__':
