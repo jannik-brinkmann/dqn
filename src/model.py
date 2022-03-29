@@ -18,7 +18,6 @@ class DQNModel(nn.Module):
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), stride=(1, 1)),
             nn.ReLU(),
 
-            # flatten features without adjusting the batch size
             nn.Flatten(),
 
             # fully-connected layer with 512 rectifier units
