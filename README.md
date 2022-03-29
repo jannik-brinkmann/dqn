@@ -8,7 +8,7 @@ The environment wrapper is implemented to play Breakout and in consequence does 
 **Requirements**
 ```bash
  pip install -r requirements.txt
- ```
+```
 
 #### Training Details
 
