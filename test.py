@@ -5,10 +5,11 @@ import cv2
 
 from collections import deque
 
-a = deque([1])
+env = gym.make('Breakout-v0', render_mode='human')
 
-print(a[0])
-print(a[-1])
+obs = env.reset()
+print(obs)
+print(obs.shape)
 
 
 

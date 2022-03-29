@@ -14,12 +14,8 @@ def deep_q_learning(environment, config):
     writer = SummaryWriter()  # output to be consumed by TensorBoard
 
     # in training mode, hide display to increase speed of simulation
-    if config.mode == 'training':
-        environment = DQNEnvironment(environment=gym.make(environment), config=config)
-
-    # in inference mode, show display to evaluate actions on the board
-    else:
-        environment = DQNEnvironment(environment=gym.make(environment, render_mode='human'), config=config)
+    render_mode = 'rgb_array' if config.mode == 'training' else 'human'
+    environment = DQNEnvironment(environment=gym.make(environment, render_mode=render_mode), config=config)
 
     agent = DQNAgent(action_space=environment.action_space, config=config)
 
