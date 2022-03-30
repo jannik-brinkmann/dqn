@@ -7,10 +7,4 @@ The environment wrapper has been implemented in an attempt to be applicable to a
 
 #### Training Details
 
-In general, results of deep reinforcement learning methods are difficult to reproduce due to non-determinism in standard benchmark envrionments, combined with variance intrinsic to the methods [[1]](#1). 
-
-#### References
-<a id="1">[1]</a> 
-Henderson, Peter, et al. (2018). 
-Deep Reinforcement Learning that Matters. 
-Proceedings of the AAAI conference on artificial intelligence, 32(1).
+In general, results of deep reinforcement learning methods are difficult to reproduce due to non-determinism in standard benchmark envrionments, combined with variance intrinsic to the methods [(Henderson, Peter, et al.)](https://ojs.aaai.org/index.php/AAAI/article/view/11694).
