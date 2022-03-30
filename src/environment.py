@@ -16,7 +16,7 @@ class DQNEnvironment(gym.Wrapper):
         self.lives = 0
         self.start_new_game = True
 
-    def reset(self, seed):
+    def new_game(self, seed):
         """
         starts an episode after loss-of-life or loss-of-game
         """
@@ -33,6 +33,10 @@ class DQNEnvironment(gym.Wrapper):
         # some environments remain unchanged until 'FIRE' action is performed
         if 'FIRE' in self.env.unwrapped.get_action_meanings():
             self.env.step(self.env.unwrapped.get_action_meanings().index('FIRE'))
+
+    def new_random_game(self, seed):
+
+        self.new_game(seed=seed)
 
         # execute a random number of 'NOOP' actions to randomize the initial game state
         n_wait_actions = random.randint(1, self.config.max_n_wait_actions)

@@ -132,3 +132,6 @@ dmypy.json
 /img/
 /logs/
 /runs/
+/weights/
+
+test.py
