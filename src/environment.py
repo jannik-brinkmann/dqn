@@ -9,85 +9,85 @@ import random
 class DQNEnvironment(gym.Wrapper):
 
     def __init__(self, environment, config):
-        super().__init__(environment)
-        self.config = config
-
-        # set environment parameters
-        self.lives = 0
-        self.start_new_game = True
-
-    def new_game(self, seed):
         """
         starts an episode after loss-of-life or loss-of-game
         """
-        # (loss-of-game) call Gym environment reset function
+        super().__init__(environment)
+
+        assert 'NOOP' in self.env.unwrapped.get_action_meanings()
+        self.noop_action = self.env.unwrapped.get_action_meanings().index('NOOP')
+
+        # max. number of 'do nothing' actions at the beginning of a new game
+        self.max_n_wait_actions = config.max_n_wait_actions
+
+        # number of times an action should be repeated in each step (frame-skipping)
+        self.action_repeat = config.action_repeat
+
+        # consider end-of-life as end-of-episode, but only call Gym environment reset function if all lives exhausted
+        self.lives = 0
+        self.start_new_game = True
+
+        self._observation_buffer = deque(maxlen=2)
+
+    def start_episode(self, seed):
+
         if self.start_new_game:
-            self.env.reset(seed=seed)
-            self.lives = self.env.unwrapped.ale.lives()
-            self.start_new_game = False
-
-        # (loss-of-life) otherwise, advance using 'NOOP' action
+            observation = self.env.reset(seed=seed)
         else:
-            self.env.step(self.env.unwrapped.get_action_meanings().index('NOOP'))
+            # advance using a 'do nothing' action
+            observation, _, _, _ = self.env.step(self.noop_action)
+        self.lives = self.env.unwrapped.ale.lives()
 
-        # some environments remain unchanged until 'FIRE' action is performed
+        # some environments remain unchanged until impulse action is performed
         if 'FIRE' in self.env.unwrapped.get_action_meanings():
-            self.env.step(self.env.unwrapped.get_action_meanings().index('FIRE'))
+            observation, _, _, _ = self.env.step(self.env.unwrapped.get_action_meanings().index('FIRE'))
 
-    def new_random_game(self, seed):
+        return observation
 
-        self.new_game(seed=seed)
+    def start_random_episode(self, seed):
 
-        # execute a random number of 'NOOP' actions to randomize the initial game state
-        n_wait_actions = random.randint(1, self.config.max_n_wait_actions)
+        observation = self.start_episode(seed=seed)
+
+        # execute a random number of 'do nothing' actions to randomize the initial game state
+        n_wait_actions = random.randint(1, self.max_n_wait_actions + 1)
         for _ in range(n_wait_actions):
-            self.env.step(self.env.unwrapped.get_action_meanings().index('NOOP'))
+            observation, _, episode_done, _ = self.env.step(self.noop_action)
+
+            # in case episode ends during random actions, call Gym environment reset function
+            if episode_done:
+                self.env.reset()
+
+        return observation
 
     def step(self, action):
-        """
-        executes action with frame-skipping and considers end-of-life as end-of-episode
-        """
-        # initialize return parameters
-        step_observation = deque(maxlen=2)
+
+        assert self.action_space.contains(action)
+
         step_reward = 0
         step_done = False
-        step_info = {}
 
-        # repeat selected action over k frames to enable faster simulation (frame-skipping technique)
-        for _ in range(self.config.action_repeat):
+        for _ in range(self.action_repeat):
 
-            # execute a single step using Gym environment step function
             observation, reward, done, info = self.env.step(action)
 
             # update return parameters
-            step_observation.append(observation)
+            self._observation_buffer.append(observation)
             step_reward = step_reward + reward
-            step_done = step_done or done
-            step_info = info
+            step_done = done
 
             # consider end-of-life as end-of-episode to improve value estimation
             if self.env.unwrapped.ale.lives() < self.lives:
                 self.lives = self.env.unwrapped.ale.lives()
                 step_done = True
 
-            # set indication that the game is over, i.e. no lives are left
-            if self.env.unwrapped.ale.lives() == 0:
-                self.start_new_game = True
-
             if step_done:
+                self.start_new_game = step_done
                 break
 
-        # remove flickering and reduce observation dimensionality over last two frames
-        step_observation = self._observation_preprocessing(step_observation[0], step_observation[-1])
-        return step_observation, step_reward, step_done, step_info
-
-    def _observation_preprocessing(self, frame_a, frame_b):
         # select maximum value for each pixel colour over previous and current frame to remove flickering
-        observation = np.maximum(frame_a, frame_b, dtype=np.float32)
+        step_observation = np.maximum(self._observation_buffer[0], self._observation_buffer[-1], dtype=np.float32)
 
         # reduce observation dimensionality through gray-scaling and down-sampling to 84 x 84
-        observation = cv2.cvtColor(observation, cv2.COLOR_BGR2GRAY)
-        observation = cv2.resize(observation, (84, 84), interpolation=cv2.INTER_LINEAR)
-        return observation
-
-
+        step_observation = cv2.cvtColor(step_observation, cv2.COLOR_BGR2GRAY)
+        step_observation = cv2.resize(step_observation, (84, 84), interpolation=cv2.INTER_LINEAR)
+        return step_observation, step_reward, step_done, info

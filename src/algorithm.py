@@ -5,6 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from src.agent import DQNAgent
 from src.environment import DQNEnvironment
+from gym import wrappers
 
 
 def deep_q_learning(environment, config):
@@ -16,6 +17,7 @@ def deep_q_learning(environment, config):
     # in training mode, hide display to increase speed of simulation
     render_mode = 'rgb_array' if config.mode == 'training' else 'human'
     environment = DQNEnvironment(environment=gym.make(environment, render_mode=render_mode), config=config)
+    #environment = wrappers.RecordVideo(environment, "./gym-results")
 
     agent = DQNAgent(action_space=environment.action_space, config=config)
 
@@ -24,9 +26,9 @@ def deep_q_learning(environment, config):
 
         # start a new episode after loss-of-live or loss-of-game
         if config.mode == 'training':
-            environment.new_random_game(seed=config.seed)
+            environment.start_new_random_game(seed=config.seed)
         else:
-            environment.new_game(seed=config.seed)
+            environment.start_new_game(seed=config.seed)
         agent.clear_observations()
 
         # set episode parameters

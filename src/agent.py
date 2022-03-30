@@ -25,7 +25,7 @@ class DQNAgent:
         if not config.mode == 'training':
             try:
                 self.model.load_state_dict(
-                    torch.load(os.path.join(os.path.dirname(__file__), os.pardir, 'weights', 'checkpoint.pth.tar')))
+                    torch.load(os.path.join(os.path.dirname(__file__), os.pardir, 'weights', 'checkpoint_43000.pth.tar')))
                 print("weights loaded")
             except:
                 print("Model cannot be saved.")

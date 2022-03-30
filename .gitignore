@@ -135,3 +135,4 @@ dmypy.json
 /weights/
 
 test.py
+/gym-results/

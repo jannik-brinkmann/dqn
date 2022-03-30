@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_n_wait_actions', default=30)  # no_op_max
 
     # additional arguments
-    parser.add_argument('--mode', default='training')
+    parser.add_argument('--mode', default='inference')
     parser.add_argument('--seed', default=42)
     parser.add_argument('--weight_save_frequency', default=1000)
     args = parser.parse_args()
