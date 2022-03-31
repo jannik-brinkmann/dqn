@@ -39,7 +39,9 @@ class DQNAgent:
         self.action_space = action_space
         self.config = config
 
-    def append_observation(self, action, observation, step_reward, episode_done):
+    def make_observation(self, action, observation, step_reward, episode_done):
+
+        # store observation in observation buffer
         self.observation_buffer.append(observation)
 
         # append experience to replay memory if sufficient observations have been stored
@@ -51,10 +53,11 @@ class DQNAgent:
             step_reward = np.clip(step_reward, -1, 1)  # clip reward
             self.memory.append(state, action, step_reward, next_state, episode_done)
 
-    def clear_observations(self):
+    def clear_observation_buffer(self):
         self.observation_buffer.clear()
 
     def select_action(self, n_steps):
+
         # in training mode, with probability epsilon select a random action a_t
         epsilon = self._compute_epsilon(n_step=n_steps)
         if self.config.mode == 'training' and random.random() < epsilon:
@@ -67,7 +70,7 @@ class DQNAgent:
             if self.config.mode == 'training':
                 action = self.action_space.sample()
 
-            # ... in inference mode, select 'NOOP' action
+            # ... in inference mode, select 'do nothing' action
             else:
                 action = 0
 
@@ -83,6 +86,7 @@ class DQNAgent:
         return np.interp(n_step, (0, self.config.epsilon_decay), (self.config.epsilon_start, self.config.epsilon_end))
 
     def update_network(self):
+
         # sample a random mini-batch of memories from replay memory D
         states, actions, rewards, next_states, episodes_done = self._sample_memories(size=self.config.mini_batch_size)
 

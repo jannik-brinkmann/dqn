@@ -11,8 +11,11 @@ class DQNEnvironment(gym.Wrapper):
     def __init__(self, environment, config):
         super().__init__(environment)
 
-        assert 'NOOP' in self.env.unwrapped.get_action_meanings()
-        self.noop_action = self.env.unwrapped.get_action_meanings().index('NOOP')
+        assert "NoFrameskip" in environment, "DQN requires NoFrameskip"
+
+        self.action_meanings = self.env.unwrapped.get_action_meanings()
+        self.observation_buffer = deque(maxlen=2)
+        self.config = config
 
         # max. number of 'do nothing' actions at the beginning of a new game
         self.max_n_wait_actions = config.max_n_wait_actions
@@ -24,33 +27,34 @@ class DQNEnvironment(gym.Wrapper):
         self.lives = 0
         self.start_new_game = True
 
-        self._observation_buffer = deque(maxlen=2)
+    def is_game_over(self):
+        return not self.start_new_game
 
-    def start_episode(self, seed):
+    def start_episode(self):
 
         if self.start_new_game:
-            observation = self.env.reset(seed=seed)
+            observation = self.env.reset()
         else:
             # advance using a 'do nothing' action
             observation, _, _, _ = self.env.step(self.noop_action)
         self.lives = self.env.unwrapped.ale.lives()
 
         # some environments remain unchanged until impulse action is performed
-        if 'FIRE' in self.env.unwrapped.get_action_meanings():
-            observation, _, _, _ = self.env.step(self.env.unwrapped.get_action_meanings().index('FIRE'))
+        if 'FIRE' in self.action_meanings:
+            observation, _, _, _ = self.env.step(self.action_meanings.index('FIRE'))
 
         return observation
 
-    def start_random_episode(self, seed):
+    def start_random_episode(self):
 
-        observation = self.start_episode(seed=seed)
+        observation = self.start_episode()
 
         # execute a random number of 'do nothing' actions to randomize the initial game state
         n_wait_actions = random.randint(1, self.max_n_wait_actions + 1)
         for _ in range(n_wait_actions):
-            observation, _, episode_done, _ = self.env.step(self.noop_action)
+            observation, _, episode_done, _ = self.env.step(0)
 
-            # in case episode ends during random actions, call Gym environment reset function
+            # in case the episode ends during random actions, call Gym environment reset function
             if episode_done:
                 self.env.reset()
 
@@ -61,13 +65,12 @@ class DQNEnvironment(gym.Wrapper):
         assert self.action_space.contains(action)
 
         cumulative_reward = 0
-        done = False
 
         for _ in range(self.action_repeat):
 
             observation, reward, done, info = self.env.step(action)
 
-            self._observation_buffer.append(observation)
+            self.observation_buffer.append(observation)
             cumulative_reward = cumulative_reward + reward
             self.start_new_game = done
 
@@ -80,7 +83,7 @@ class DQNEnvironment(gym.Wrapper):
                 break
 
         # select maximum value for each pixel colour over the last two frame to remove flickering
-        reduced_observation = np.maximum(self._observation_buffer[0], self._observation_buffer[-1], dtype=np.float32)
+        reduced_observation = np.maximum(self.observation_buffer[0], self.observation_buffer[-1], dtype=np.float32)
 
         # reduce observation dimensionality through gray-scaling and down-sampling to 84 x 84
         reduced_observation = cv2.cvtColor(reduced_observation, cv2.COLOR_BGR2GRAY)

@@ -1,56 +1,42 @@
 import itertools
 
-import gym
 from torch.utils.tensorboard import SummaryWriter
 
-from src.agent import DQNAgent
-from src.environment import DQNEnvironment
-from gym import wrappers
 
+def deep_q_learning(agent, environment, config):
 
-def deep_q_learning(environment, config):
-    """
-    deep Q-learning with experience replay
-    """
-    writer = SummaryWriter()  # output to be consumed by TensorBoard
-
-    # in training mode, hide display to increase speed of simulation
-    render_mode = 'rgb_array' if config.mode == 'training' else 'human'
-    environment = DQNEnvironment(environment=gym.make(environment, render_mode=render_mode), config=config)
-    #environment = wrappers.RecordVideo(environment, "./gym-results")
-
-    agent = DQNAgent(action_space=environment.action_space, config=config)
-
+    game_reward = 0.0  # one game might consist of multiple episode (e.g. in Breakout)
     n_steps = 1  # no. of actions selected by the agent
+    writer = SummaryWriter()  # writes output to be consumed by TensorBoard
+
     for episode in itertools.count():
 
-        # start a new episode after loss-of-live or loss-of-game
         if config.mode == 'training':
-            environment.start_random_episode(seed=config.seed)
+            environment.start_random_episode()
         else:
-            environment.start_episode(seed=config.seed)
-        agent.clear_observations()
+            environment.start_episode()
 
-        # set episode parameters
+        agent.clear_observation_buffer()
+
         episode_done = False
         episode_reward = 0.0
 
         while not episode_done:
 
-            # in training mode until replay memory D is populated, select actions using a uniform random policy
+            # in training mode, select actions using a uniform random policy until replay memory D is populated
             if config.mode == 'training' and not agent.memory.is_full():
                 action = agent.action_space.sample()
 
             # otherwise, select action using an epsilon-greedy strategy
             else:
                 action = agent.select_action(n_steps=n_steps)
-                n_steps = n_steps + 1
+                n_steps += 1
 
             # execute action a_t in emulator
             observation, step_reward, episode_done, info = environment.step(action)
 
-            # observe image x_(t+1); store transition in replay memory Dy
-            agent.append_observation(action, observation, step_reward, episode_done)
+            # observe image x_(t+1); store transition in replay memory D
+            agent.make_observation(action, observation, step_reward, episode_done)
 
             # update the action-value function Q every k-th action
             if config.mode == 'training' and n_steps % config.update_frequency == 0:
@@ -59,13 +45,14 @@ def deep_q_learning(environment, config):
 
             # update target network every k-th update of the action-value function Q
             if config.mode == 'training' and n_steps % (config.update_frequency * config.target_update_frequency) == 0:
+                agent.save_model_weights('checkpoint_' + str(n_steps) + '.pth.tar')
                 agent.update_target_network()
 
             episode_reward += step_reward
 
         writer.add_scalar('Episode Reward', episode_reward, episode)
-        writer.add_scalar('Game Reward', episode_reward, episode)
 
-        # store network weights every k-th episode
-        if config.mode == 'training' and episode % config.weight_save_frequency == 0:
-            agent.save_model_weights('checkpoint_' + str(episode) + '.pth.tar')
+        game_reward += episode_reward
+        if environment.is_game_over():
+            writer.add_scalar('Game Reward', game_reward, episode)
+            game_reward = 0.0
