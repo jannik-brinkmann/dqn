@@ -64,6 +64,7 @@ def deep_q_learning(environment, config):
             episode_reward += step_reward
 
         writer.add_scalar('Episode Reward', episode_reward, episode)
+        writer.add_scalar('Game Reward', episode_reward, episode)
 
         # store network weights every k-th episode
         if config.mode == 'training' and episode % config.weight_save_frequency == 0:
