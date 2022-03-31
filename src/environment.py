@@ -9,9 +9,6 @@ import random
 class DQNEnvironment(gym.Wrapper):
 
     def __init__(self, environment, config):
-        """
-        starts an episode after loss-of-life or loss-of-game
-        """
         super().__init__(environment)
 
         assert 'NOOP' in self.env.unwrapped.get_action_meanings()
@@ -63,31 +60,29 @@ class DQNEnvironment(gym.Wrapper):
 
         assert self.action_space.contains(action)
 
-        step_reward = 0
-        step_done = False
+        cumulative_reward = 0
+        done = False
 
         for _ in range(self.action_repeat):
 
             observation, reward, done, info = self.env.step(action)
 
-            # update return parameters
             self._observation_buffer.append(observation)
-            step_reward = step_reward + reward
-            step_done = done
+            cumulative_reward = cumulative_reward + reward
+            self.start_new_game = done
 
             # consider end-of-life as end-of-episode to improve value estimation
-            if self.env.unwrapped.ale.lives() < self.lives:
-                self.lives = self.env.unwrapped.ale.lives()
-                step_done = True
+            if self.lives > self.env.unwrapped.ale.lives():
+                done = True
+            self.lives = self.env.unwrapped.ale.lives()
 
-            if step_done:
-                self.start_new_game = step_done
+            if done:
                 break
 
-        # select maximum value for each pixel colour over previous and current frame to remove flickering
-        step_observation = np.maximum(self._observation_buffer[0], self._observation_buffer[-1], dtype=np.float32)
+        # select maximum value for each pixel colour over the last two frame to remove flickering
+        observation = np.maximum(self._observation_buffer[0], self._observation_buffer[-1], dtype=np.float32)
 
         # reduce observation dimensionality through gray-scaling and down-sampling to 84 x 84
-        step_observation = cv2.cvtColor(step_observation, cv2.COLOR_BGR2GRAY)
-        step_observation = cv2.resize(step_observation, (84, 84), interpolation=cv2.INTER_LINEAR)
-        return step_observation, step_reward, step_done, info
+        observation = cv2.cvtColor(observation, cv2.COLOR_BGR2GRAY)
+        observation = cv2.resize(observation, (84, 84), interpolation=cv2.INTER_LINEAR)
+        return observation, cumulative_reward, done, info

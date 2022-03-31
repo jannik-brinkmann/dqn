@@ -26,9 +26,9 @@ def deep_q_learning(environment, config):
 
         # start a new episode after loss-of-live or loss-of-game
         if config.mode == 'training':
-            environment.start_new_random_game(seed=config.seed)
+            environment.start_random_episode(seed=config.seed)
         else:
-            environment.start_new_game(seed=config.seed)
+            environment.start_episode(seed=config.seed)
         agent.clear_observations()
 
         # set episode parameters
