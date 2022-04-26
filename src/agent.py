@@ -13,6 +13,8 @@ import os
 class DQNAgent:
 
     def __init__(self, action_space, config):
+        self.action_space = action_space
+        self.config = config
 
         # initialize observation buffer to store previous k observations
         self.observation_buffer = deque(maxlen=10)
@@ -22,27 +24,18 @@ class DQNAgent:
 
         # initialize action-value function Q with random weights
         self.model = DQNModel(n_actions=action_space.n)
-        if not config.mode == 'training':
-            try:
-                self.model.load_state_dict(
-                    torch.load(os.path.join(os.path.dirname(__file__), os.pardir, 'weights', 'checkpoint_43000.pth.tar')))
-                print("weights loaded")
-            except:
-                print("Model cannot be saved.")
+        self.optimizer = torch.optim.RMSprop(self.model.parameters(), lr=config.learning_rate)
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
-
-        # initialize separate network for generating targets y_j as a clone of the action-value function Q
+        # initialize separate target network as a clone of the action-value function Q
         self.target_model = DQNModel(n_actions=action_space.n)
         self.target_model.load_state_dict(self.model.state_dict())
 
-        self.action_space = action_space
-        self.config = config
-
-    def make_observation(self, action, observation, step_reward, episode_done):
+    def observe(self, observation):
 
         # store observation in observation buffer
         self.observation_buffer.append(observation)
+
+    def store_experience(self, action, step_reward, episode_done):
 
         # append experience to replay memory if sufficient observations have been stored
         if len(self.observation_buffer) > self.config.agent_history_length:
@@ -56,18 +49,12 @@ class DQNAgent:
     def clear_observation_buffer(self):
         self.observation_buffer.clear()
 
-    def select_action(self, n_steps):
-
-        # in training mode, with probability epsilon select a random action a_t
-        epsilon = self._compute_epsilon(n_step=n_steps)
-        if self.config.mode == 'training' and random.random() < epsilon:
-            action = self.action_space.sample()
-
+    def select_action(self, mode):
         # in case the agent does not have enough observations to select an action ...
-        elif len(self.observation_buffer) < self.config.agent_history_length:
+        if len(self.observation_buffer) < self.config.agent_history_length:
 
             # ... in training mode, select a random action a_t
-            if self.config.mode == 'training':
+            if mode == 'training':
                 action = self.action_space.sample()
 
             # ... in inference mode, select 'do nothing' action
@@ -80,6 +67,18 @@ class DQNAgent:
             state = np.array(list(itertools.islice(self.observation_buffer, index, index + 4)))
             q_values = self.model(torch.as_tensor(state, dtype=torch.float32).unsqueeze(0))
             action = torch.argmax(q_values, dim=1)[0].detach().item()
+        return action
+
+    def sample_action(self, step, mode):
+
+        # in training mode, with probability epsilon select a random action a_t
+        epsilon = self._compute_epsilon(n_step=step)
+        if mode == 'training' and random.random() < epsilon:
+            action = self.action_space.sample()
+
+        # in case the agent does not have enough observations to select an action ...
+        else:
+            action = self.select_action(mode=mode)
         return action
 
     def _compute_epsilon(self, n_step):

@@ -10,12 +10,11 @@ class DQNEnvironment(gym.Wrapper):
 
     def __init__(self, environment, config):
         super().__init__(environment)
+        self.config = config
 
-        assert "NoFrameskip" in environment, "DQN requires NoFrameskip"
 
         self.action_meanings = self.env.unwrapped.get_action_meanings()
         self.observation_buffer = deque(maxlen=2)
-        self.config = config
 
         # max. number of 'do nothing' actions at the beginning of a new game
         self.max_n_wait_actions = config.max_n_wait_actions
@@ -27,16 +26,19 @@ class DQNEnvironment(gym.Wrapper):
         self.lives = 0
         self.start_new_game = True
 
+    def get_lives(self):
+        return self.env.unwrapped.ale.lives()
+
     def is_game_over(self):
         return not self.start_new_game
 
     def start_episode(self):
 
         if self.start_new_game:
-            observation = self.env.reset()
+            observation = self.env.reset(seed=random.randint(1, 69420))
         else:
             # advance using a 'do nothing' action
-            observation, _, _, _ = self.env.step(self.noop_action)
+            observation, _, _, _ = self.env.step(0)
         self.lives = self.env.unwrapped.ale.lives()
 
         # some environments remain unchanged until impulse action is performed
@@ -56,7 +58,7 @@ class DQNEnvironment(gym.Wrapper):
 
             # in case the episode ends during random actions, call Gym environment reset function
             if episode_done:
-                self.env.reset()
+                self.env.reset(seed=random.randint(1, 69420))
 
         return observation
 

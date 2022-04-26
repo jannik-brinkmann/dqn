@@ -11,9 +11,17 @@ from src.agent import DQNAgent
 from src.environment import DQNEnvironment
 
 
-def experiment(environment, mode):
+def experiment(environment):
 
-    warnings.filterwarnings("ignore")
+    # in training mode, hide display to increase speed of simulation
+    render_mode = 'rgb_array' if config.mode == 'training' else 'human'
+    environment = DQNEnvironment(environment=gym.make(environment, render_mode=render_mode), config=config)
+    agent = DQNAgent(action_space=environment.action_space, config=config)
+
+    deep_q_learning(agent, environment, config)
+
+
+if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
@@ -35,19 +43,20 @@ def experiment(environment, mode):
     parser.add_argument('--replay_start_size', default=25000)  # 50000
     parser.add_argument('--max_n_wait_actions', default=30)  # no_op_max
 
-    # additional arguments
-    parser.add_argument('--mode', default='training')
-    config = parser.parse_args()
+    # see Caption of Extended Data Table 3
+    parser.add_argument('--n_training_steps', default=10000000)
+    parser.add_argument('--evaluation_frequency', default=250000)
+    parser.add_argument('--n_evaluation_steps', default=135000)
+    args = parser.parse_args()
 
-    # in training mode, hide display to increase speed of simulation
-    render_mode = 'rgb_array' if config.mode == 'training' else 'human'
-    environment = DQNEnvironment(environment=gym.make(environment, render_mode=render_mode), config=config)
-    agent = DQNAgent(action_space=environment.action_space, config=config)
+    games = ['Breakout', 'Enduro', 'Riverraid', 'Seaquest', 'Spaceinvaders']
 
-    deep_q_learning(agent, environment, config)
+    for game in games:
 
+        deep_q_learning(agent, environment, config)
 
-if __name__ == '__main__':
-    # NoFrameskip - ensures no frames are skipped by the emulator
-    # v4 - ensures actions are executed, whereas v0 would ignore an action with 0.25 probability
-    experiment(environment='BreakoutNoFrameskip-v4')
+        # NoFrameskip - ensures no frames are skipped by the emulator
+        # v4 - ensures actions are executed, whereas v0 would ignore an action with 0.25 probability
+        max_avg_episode_score = experiment(environment='PongNoFrameskip-v4')
+
+        print(f'{game} Score: {max_avg_episode_score}')
