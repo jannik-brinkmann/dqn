@@ -9,16 +9,7 @@ import gym
 
 from src.agent import DQNAgent
 from src.environment import DQNEnvironment
-
-
-def experiment(environment):
-
-    # in training mode, hide display to increase speed of simulation
-    render_mode = 'rgb_array' if config.mode == 'training' else 'human'
-    environment = DQNEnvironment(environment=gym.make(environment, render_mode=render_mode), config=config)
-    agent = DQNAgent(action_space=environment.action_space, config=config)
-
-    deep_q_learning(agent, environment, config)
+from datetime import datetime
 
 
 if __name__ == '__main__':
@@ -52,11 +43,10 @@ if __name__ == '__main__':
     games = ['Breakout', 'Enduro', 'Riverraid', 'Seaquest', 'Spaceinvaders']
 
     for game in games:
-
-        deep_q_learning(agent, environment, config)
+        experiment_name = datetime.today().strftime('%Y-%m-%d') + '_' + game
 
         # NoFrameskip - ensures no frames are skipped by the emulator
         # v4 - ensures actions are executed, whereas v0 would ignore an action with 0.25 probability
-        max_avg_episode_score = experiment(environment='PongNoFrameskip-v4')
+        max_avg_episode_score = deep_q_learning(environment_name=game, experiment_name=experiment_name, args=args)
 
         print(f'{game} Score: {max_avg_episode_score}')

@@ -12,7 +12,6 @@ class DQNEnvironment(gym.Wrapper):
         super().__init__(environment)
         self.config = config
 
-
         self.action_meanings = self.env.unwrapped.get_action_meanings()
         self.observation_buffer = deque(maxlen=2)
 
@@ -85,9 +84,9 @@ class DQNEnvironment(gym.Wrapper):
                 break
 
         # select maximum value for each pixel colour over the last two frame to remove flickering
-        reduced_observation = np.maximum(self.observation_buffer[0], self.observation_buffer[-1], dtype=np.float32)
+        observation = np.maximum(self.observation_buffer[0], self.observation_buffer[-1], dtype=np.float32)
 
         # reduce observation dimensionality through gray-scaling and down-sampling to 84 x 84
-        reduced_observation = cv2.cvtColor(reduced_observation, cv2.COLOR_BGR2GRAY)
-        reduced_observation = cv2.resize(reduced_observation, (84, 84), interpolation=cv2.INTER_LINEAR)
-        return reduced_observation, cumulative_reward, done, info
+        observation = cv2.cvtColor(observation, cv2.COLOR_BGR2GRAY)
+        observation = cv2.resize(observation, (84, 84), interpolation=cv2.INTER_LINEAR)
+        return observation, cumulative_reward, done, info
