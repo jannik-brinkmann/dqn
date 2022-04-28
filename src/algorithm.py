@@ -55,42 +55,46 @@ def deep_q_learning(environment_name, experiment_name, args):
 
         # evaluate agent performance every k-th action
         if step % args.evaluation_frequency == 0:
-
-            environment.start_episode()
-
-            evaluation_episodes = 0
-            evaluation_episode_reward = 0
-            evaluation_reward = 0
-            evaluation_step = 0
-
-            while evaluation_step < args.n_evaluation_steps:
-                evaluation_step += 1
-
-                # select and execute action, observe image x_(t+1)
-                action = agent.select_action(mode='evaluation')
-                observation, step_reward, episode_done, _ = environment.step(action)
-                agent.observe(observation=observation)
-
-                # update evaluation reward
-                evaluation_episode_reward += step_reward
-
-                if episode_done:
-                    environment.start_episode()
-
-                    # in evaluation, episodes don't end when losing a life
-                    if environment.is_game_over():
-                        evaluation_episodes += 1
-                        evaluation_reward += evaluation_episode_reward
-                        writer.add_scalar('Evaluation Episode Reward', evaluation_episode_reward, step)
-
-            average_evaluation_reward = evaluation_reward / max(1, evaluation_episodes)
-            writer.add_scalar('Average Evaluation Reward', average_evaluation_reward, step)
-            writer.add_scalar('Evaluation Episodes', evaluation_episodes, step)
+            average_evaluation_reward_per_episode = evaluate_agent(agent, environment, args.n_evaluation_steps)
+            writer.add_scalar('Avg. Evaluation Reward per Episode', average_evaluation_reward_per_episode, step)
 
             # store weights of network with the highest evaluation score
-            if average_evaluation_reward > max(evaluation_scores):
+            if average_evaluation_reward_per_episode > max(evaluation_scores):
                 agent.save_model_weights(experiment_name)
 
-            evaluation_scores.append(average_evaluation_reward)
+            evaluation_scores.append(average_evaluation_reward_per_episode)
 
     return max(evaluation_scores)
+
+
+def evaluate_agent(agent, environment, n_evaluation_steps):
+
+    environment.start_episode()
+
+    # evaluate agent as average reward over evaluation episodes
+    reward = 0
+    episode_reward = 0
+
+    episodes = 0
+    step = 0
+    while step < n_evaluation_steps:
+        step += 1
+
+        # select and execute action, observe image x_(t+1)
+        action = agent.select_action(mode='evaluation')
+        observation, step_reward, done, _ = environment.step(action)
+        agent.observe(observation=observation)
+
+        episode_reward += step_reward
+
+        if done:
+            environment.start_episode()
+
+            # in evaluation, episodes don't end when losing a life
+            if environment.is_game_over():
+                episodes += 1
+                reward += episode_reward
+                episode_reward = 0
+
+    average_reward_per_episode = reward / max(1, episodes)
+    return average_reward_per_episode

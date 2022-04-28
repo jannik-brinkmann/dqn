@@ -23,17 +23,17 @@ class DQNEnvironment(gym.Wrapper):
 
         # consider end-of-life as end-of-episode, but only call Gym environment reset function if all lives exhausted
         self.lives = 0
-        self.start_new_game = True
+        self.game_over = True
 
     def get_lives(self):
         return self.env.unwrapped.ale.lives()
 
     def is_game_over(self):
-        return not self.start_new_game
+        return self.game_over
 
     def start_episode(self):
 
-        if self.start_new_game:
+        if self.game_over:
             observation = self.env.reset(seed=random.randint(1, 69420))
         else:
             # advance using a 'do nothing' action
@@ -73,7 +73,7 @@ class DQNEnvironment(gym.Wrapper):
 
             self.observation_buffer.append(observation)
             cumulative_reward = cumulative_reward + reward
-            self.start_new_game = done
+            self.game_over = done
 
             # consider end-of-life as end-of-episode to improve value estimation
             if self.lives > self.env.unwrapped.ale.lives():
