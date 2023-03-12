@@ -1,9 +1,9 @@
 # Deep Q-Network
 
-A PyTorch re-implementation of ["Human-Level Control Through Deep Reinforcement Learning"](https://www.nature.com/articles/nature14236). 
+A PyTorch implementation of ["Human-Level Control Through Deep Reinforcement Learning"](https://www.nature.com/articles/nature14236). 
 
 #### Implementation Details
-The environment wrapper has been implemented in an attempt to be applicable to all OpenAI Gym Atari environments. However, it has not been evaluated on environments other than Breakout and Pong, wherefore specialties of other environments might not be considered. 
+I implemented the environment wrapper in an attempt to make it applicable to all OpenAI Gym Atari environments. However, I have not evaluated it on environments other than Breakout and Pong, wherefore specifics of other environments might not be considered. 
 
 #### Training Details
 
