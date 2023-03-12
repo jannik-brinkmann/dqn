@@ -129,4 +129,4 @@ class DQNAgent:
         try:
             self.model.load_state_dict(torch.load(os.path.join(os.path.dirname(__file__), os.pardir, 'weights', filename)))
         except:
-            print("Model cannot be saved.")
+            print("Model cannot be loaded.")
