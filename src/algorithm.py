@@ -59,7 +59,7 @@ def deep_q_learning(environment_name, experiment_name, args):
             writer.add_scalar('Avg. Evaluation Reward per Episode', average_evaluation_reward_per_episode, step)
 
             # store weights of network with the highest evaluation score
-            if average_evaluation_reward_per_episode > max(evaluation_scores):
+            if evaluation_scores and average_evaluation_reward_per_episode > max(evaluation_scores):
                 agent.save_model_weights(experiment_name)
 
             evaluation_scores.append(average_evaluation_reward_per_episode)

@@ -37,12 +37,12 @@ class DQNEnvironment(gym.Wrapper):
             observation = self.env.reset(seed=random.randint(1, 69420))
         else:
             # advance using a 'do nothing' action
-            observation, _, _, _ = self.env.step(0)
+            observation, _, _, _, _ = self.env.step(0)
         self.lives = self.env.unwrapped.ale.lives()
 
         # some environments remain unchanged until impulse action is performed
         if 'FIRE' in self.action_meanings:
-            observation, _, _, _ = self.env.step(self.action_meanings.index('FIRE'))
+            observation, _, _, _, _ = self.env.step(self.action_meanings.index('FIRE'))
 
         return observation
 
@@ -53,7 +53,7 @@ class DQNEnvironment(gym.Wrapper):
         # execute a random number of 'do nothing' actions to randomize the initial game state
         n_wait_actions = random.randint(1, self.max_n_wait_actions + 1)
         for _ in range(n_wait_actions):
-            observation, _, episode_done, _ = self.env.step(0)
+            observation, _, episode_done, _, _ = self.env.step(0)
 
             # in case the episode ends during random actions, call Gym environment reset function
             if episode_done:
@@ -69,7 +69,7 @@ class DQNEnvironment(gym.Wrapper):
 
         for _ in range(self.action_repeat):
 
-            observation, reward, done, info = self.env.step(action)
+            observation, reward, done, _, info = self.env.step(action)
 
             self.observation_buffer.append(observation)
             cumulative_reward = cumulative_reward + reward
