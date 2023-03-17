@@ -6,6 +6,7 @@ from src.agent import DQNAgent
 from src.environment import DQNEnvironment
 import gym
 from datetime import datetime
+from tqdm import tqdm
 
 
 def deep_q_learning(environment_name, experiment_name, args):
@@ -19,6 +20,7 @@ def deep_q_learning(environment_name, experiment_name, args):
     episode_reward = 0
     evaluation_scores = []
 
+    progress = tqdm(total=args.n_training_steps, desc="Training Steps")
     step = 1  # no. of actions selected by the agent
     while step < args.n_training_steps:
 
@@ -36,9 +38,10 @@ def deep_q_learning(environment_name, experiment_name, args):
         else:
             action = agent.sample_action(step=step, mode='training')
             step += 1
+            progress.update(1)
 
         # execute action a_t, observe image x_(t+1), store transition in replay memory D
-        observation, step_reward, episode_done, info = environment.step(action)
+        observation, step_reward, episode_done, _ = environment.step(action)
         agent.observe(observation=observation)
         agent.store_experience(action, step_reward, episode_done)
 
@@ -59,6 +62,7 @@ def deep_q_learning(environment_name, experiment_name, args):
             writer.add_scalar('Avg. Evaluation Reward per Episode', average_evaluation_reward_per_episode, step)
 
             # store weights of network with the highest evaluation score
+            print(evaluation_scores)
             if evaluation_scores and average_evaluation_reward_per_episode > max(evaluation_scores):
                 agent.save_model_weights(experiment_name)
 

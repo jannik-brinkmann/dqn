@@ -124,6 +124,7 @@ class DQNAgent:
     def save_model_weights(self, filename):
         os.makedirs(os.path.join(os.path.dirname(__file__), os.pardir, 'weights'), exist_ok=True)
         torch.save(self.model.state_dict(), os.path.join(os.path.dirname(__file__), os.pardir, 'weights', filename))
+        print("Model saved.")
 
     def load_model_weights(self, filename):
         try:

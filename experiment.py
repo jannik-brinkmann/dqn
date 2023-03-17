@@ -1,15 +1,17 @@
 import argparse
-import logging
 import os
 
-from src.algorithm import deep_q_learning
-from torch.utils.tensorboard import SummaryWriter
-import warnings
 import gym
+import logging
+import warnings
+
+from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter
 
 from src.agent import DQNAgent
+from src.algorithm import deep_q_learning
 from src.environment import DQNEnvironment
-from datetime import datetime
+
 
 
 if __name__ == '__main__':
@@ -31,22 +33,22 @@ if __name__ == '__main__':
     parser.add_argument('--epsilon_start', default=1)  # initial_epsilon
     parser.add_argument('--epsilon_end', default=0.1)  # final_epsilon
     parser.add_argument('--epsilon_decay', default=1000000)  # final_epsilon_frame
-    parser.add_argument('--replay_start_size', default=25000)  # 50000
+    parser.add_argument('--replay_start_size', default=50000)  # 50000
     parser.add_argument('--max_n_wait_actions', default=30)  # no_op_max
 
-    # see Caption of Extended Data Table 3
+    # see caption of Extended Data Table 3
     parser.add_argument('--n_training_steps', default=10000000)
     parser.add_argument('--evaluation_frequency', default=250000)
     parser.add_argument('--n_evaluation_steps', default=135000)
     args = parser.parse_args()
 
-    games = ['Breakout', 'Enduro', 'Riverraid', 'Seaquest', 'Spaceinvaders']
+    # NoFrameskip - ensures no frames are skipped by the emulator
+    # v4 - ensures actions are executed, whereas v0 would ignore an action with 0.25 probability
+    games = ['BreakoutNoFrameskip-v4']
 
     for game in games:
         experiment_name = datetime.today().strftime('%Y-%m-%d') + '_' + game
 
-        # NoFrameskip - ensures no frames are skipped by the emulator
-        # v4 - ensures actions are executed, whereas v0 would ignore an action with 0.25 probability
         max_avg_episode_score = deep_q_learning(environment_name=game, experiment_name=experiment_name, args=args)
 
         print(f'{game} Score: {max_avg_episode_score}')
