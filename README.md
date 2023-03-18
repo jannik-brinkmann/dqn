@@ -10,7 +10,9 @@ I use the training parameters as described in the original paper, except I use a
 
 <div align="center">
   
-https://user-images.githubusercontent.com/62884101/226115786-cae633c3-9ba8-4952-8e9f-fedbc6267cff.mp4
+  https://user-images.githubusercontent.com/62884101/226115786-cae633c3-9ba8-4952-8e9f-fedbc6267cff.mp4
+
+  <em>Gameplay of the agent in the first life of a random episode.</em>
 
 </div>
 
