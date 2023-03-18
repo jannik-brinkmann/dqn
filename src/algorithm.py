@@ -9,18 +9,18 @@ from datetime import datetime
 from tqdm import tqdm
 
 
-def deep_q_learning(environment_name, experiment_name, args):
+def deep_q_learning(environment, args):
 
     writer = SummaryWriter()  # writes output to be consumed by TensorBoard
 
-    environment = DQNEnvironment(environment=gym.make(environment_name), config=args)
+    environment = DQNEnvironment(environment=gym.make(environment), config=args)
     agent = DQNAgent(action_space=environment.action_space, config=args)
 
     episode_done = True
     episode_reward = 0
     evaluation_scores = []
 
-    progress = tqdm(total=args.n_training_steps, desc="Training Steps")
+    progress = tqdm(total=args.n_training_steps, desc="Training Steps", position=0, leave=True)
     step = 1  # no. of actions selected by the agent
     while step < args.n_training_steps:
 
@@ -62,9 +62,9 @@ def deep_q_learning(environment_name, experiment_name, args):
             writer.add_scalar('Avg. Evaluation Reward per Episode', average_evaluation_reward_per_episode, step)
 
             # store weights of network with the highest evaluation score
-            print(evaluation_scores)
             if evaluation_scores and average_evaluation_reward_per_episode > max(evaluation_scores):
-                agent.save_model_weights(experiment_name)
+                model_name = datetime.today().strftime('%Y-%m-%d-%H-%M') + '_' + environment.unwrapped.spec.id
+                agent.save_model_weights(model_name)
 
             evaluation_scores.append(average_evaluation_reward_per_episode)
 

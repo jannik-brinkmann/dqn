@@ -44,11 +44,10 @@ if __name__ == '__main__':
 
     # NoFrameskip - ensures no frames are skipped by the emulator
     # v4 - ensures actions are executed, whereas v0 would ignore an action with 0.25 probability
-    games = ['BreakoutNoFrameskip-v4']
+    environments = ['BreakoutNoFrameskip-v4']
 
-    for game in games:
-        experiment_name = datetime.today().strftime('%Y-%m-%d') + '_' + game
+    for environment in environments:
 
-        max_avg_episode_score = deep_q_learning(environment_name=game, experiment_name=experiment_name, args=args)
+        training_score = deep_q_learning(environment=environment, args=args)
 
-        print(f'{game} Score: {max_avg_episode_score}')
+        print(f'{environment} Score: {training_score}')
