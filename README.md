@@ -1,6 +1,5 @@
-# Deep Q-Networks
-
-Replication of ["Human-Level Control Through Deep Reinforcement Learning"](https://www.nature.com/articles/nature14236). 
+# Replication of [Human-Level Control Through Deep Reinforcement Learning](https://www.nature.com/articles/nature14236)
+[![](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/) [![](https://img.shields.io/github/license/jannik-brinkmann/dqn.svg)](https://github.com/jannik-brinkmann/dqn/blob/master/LICENSE.md)
 
 ## Requirements
 
