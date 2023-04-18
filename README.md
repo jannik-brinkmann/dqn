@@ -19,3 +19,13 @@ The agent achieves a game score of 129.8 on Breakout using experience replay and
   <em><b>Gameplay</b> of the agent on the first life of a random episode.</em>
 
 </div>
+
+### Citation   
+```
+@article{
+  title={Human-Level Control Through Deep Reinforcement Learning},
+  author={Volodymyr Mnih and Koray Kavukcuoglu and David Silver and Andrei A. Rusu and Joel Veness and Marc G. Bellemare and Alex Graves and Martin Riedmiller and Andreas K. Fidjeland and Georg Ostrovski and Stig Petersen and Charles Beattie and Amir Sadik and Ioannis Antonoglou and Helen King and Dharshan Kumaran and Daan Wierstra and Shane Legg and Demis Hassabis},
+  journal={Nature},
+  year={2015}
+}
+```
