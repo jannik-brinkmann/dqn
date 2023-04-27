@@ -1,4 +1,4 @@
-# Replication of "Human-Level Control Through Deep Reinforcement Learning" (Mnih et al. 2015) 
+# Replication of "Human-Level Control Through Deep Reinforcement Learning"
 [![](https://img.shields.io/github/license/jannik-brinkmann/dqn.svg)](https://github.com/jannik-brinkmann/dqn/blob/master/LICENSE.md)
 
 ### Requirements
