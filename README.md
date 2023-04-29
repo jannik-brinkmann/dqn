@@ -15,7 +15,7 @@ This repository contains a replication of [Human-Level Control Through Deep Rein
 
 ### Evaluation
 
-The agent achieved a game score of 129.8 on Breakout, compared to the original authors' score of 316.6. In general, as with many deep reinforcement learning methods, reproducing results can be challenging due to non-determinism in standard benchmark environments and intrinsic variance in the methods themselves [(Henderson et al. 2018)](https://ojs.aaai.org/index.php/AAAI/article/view/11694). However, it's possible that a bug in the code contributes to this effect.
+The agent achieves a game score of 129.8 on Breakout, compared to the original authors' score of 316.6. In general, as with many deep reinforcement learning methods, reproducing results can be challenging due to non-determinism in standard benchmark environments and intrinsic variance in the methods themselves [(Henderson et al. 2018)](https://ojs.aaai.org/index.php/AAAI/article/view/11694). However, it's possible that a bug in the code contributes to this effect.
 
 <div align="center">
   <video src="https://user-images.githubusercontent.com/62884101/226115786-cae633c3-9ba8-4952-8e9f-fedbc6267cff.mp4" width="100" />
