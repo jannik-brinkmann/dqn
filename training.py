@@ -1,17 +1,8 @@
 import argparse
-import os
 
 import gym
-import logging
-import warnings
 
-from datetime import datetime
-from torch.utils.tensorboard import SummaryWriter
-
-from src.agent import DQNAgent
-from src.algorithm import deep_q_learning
-from src.environment import DQNEnvironment
-
+from dqn.algorithm import deep_q_learning
 
 
 if __name__ == '__main__':

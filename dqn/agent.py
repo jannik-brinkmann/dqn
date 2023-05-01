@@ -1,13 +1,14 @@
-from src.memory import ReplayMemory
-from src.model import DQNModel
-
-import torch
-import torch.nn as nn
-import numpy as np
-import random
-from collections import deque
 import itertools
 import os
+import random
+from collections import deque
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+from memory import ReplayMemory
+from model import DQNModel
 
 
 class DQNAgent:

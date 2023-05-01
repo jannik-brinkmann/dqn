@@ -1,12 +1,12 @@
 import itertools
 
-from torch.utils.tensorboard import SummaryWriter
-
-from src.agent import DQNAgent
-from src.environment import DQNEnvironment
 import gym
 from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+
+from agent import DQNAgent
+from environment import DQNEnvironment
 
 
 def deep_q_learning(environment, args):
