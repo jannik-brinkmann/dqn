@@ -9,6 +9,31 @@ To install requirements:
 pip install -r requirements.txt
 ```
 
+### Training
+To train the Deep Q-Network use the script using this command:
+
+```bash
+python run_image_classification.py \
+    --dataset_name beans \
+    --output_dir ./beans_outputs/ \
+    --remove_unused_columns False \
+    --do_train \
+    --do_eval \
+    --push_to_hub \
+    --push_to_hub_model_id vit-base-beans \
+    --learning_rate 2e-5 \
+    --num_train_epochs 5 \
+    --per_device_train_batch_size 8 \
+    --per_device_eval_batch_size 8 \
+    --logging_strategy steps \
+    --logging_steps 10 \
+    --evaluation_strategy epoch \
+    --save_strategy epoch \
+    --load_best_model_at_end True \
+    --save_total_limit 3 \
+    --seed 1337
+```
+
 ### Implementation
 
 This repository contains a replication of [Human-Level Control Through Deep Reinforcement Learning](https://www.nature.com/articles/nature14236) using OpenAI Gym and PyTorch. The implementation includes an environment wrapper designed to be applicable to all environments, although it has only been evaluated on Breakout and Pong so far.
